@@ -52,8 +52,8 @@ class Program
 
         // TODO change to be function parameter
         List<int[]> data = new List<int[]>();
-        int bufferSize = 10;
-        int numChannels = 10;
+        int bufferSize = 100;
+        int numChannels = 60;
 
         for (int i = 0; i < numChannels ; i++)
         {
