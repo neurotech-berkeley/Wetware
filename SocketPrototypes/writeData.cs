@@ -49,8 +49,40 @@ class Program
 
         // Send the current timestamp to the client
         string timestamp = DateTime.Now.ToString();
-        byte[] data = Encoding.ASCII.GetBytes(timestamp);
-        clientSocket.Send(data);
+
+        // TODO change to be function parameter
+        List<int[]> data = new List<int[]>();
+        int bufferSize = 100;
+        int numChannels = 60;
+
+        for (int i = 0; i < numChannels ; i++)
+        {
+            data.Add(new int[bufferSize]);
+
+            for (int j = 0; j < bufferSize; j++){
+                data.ElementAt(i)[j] = 1;
+            }
+        }
+
+
+        // actual processing code
+        int[][] sendData = new int[numChannels][];
+        byte[] original = new byte[0];
+
+        for(int i = 0; i < numChannels; i++){
+            sendData[i] = new int[bufferSize];
+            for(int j = 0; j < bufferSize; j++){
+                byte[] end = BitConverter.GetBytes(data.ElementAt(i)[j]);
+
+                byte[] combined = new byte[original.Length + end.Length];
+                Array.Copy(original, combined, original.Length);
+                Array.Copy(end, 0, combined, original.Length, end.Length);
+
+                original = combined;
+            }
+        }
+
+        clientSocket.Send(original);
 
         // Close the client socket
         clientSocket.Shutdown(SocketShutdown.Both);

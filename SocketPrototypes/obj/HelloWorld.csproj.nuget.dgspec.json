@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/tavish/Downloads/HelloWorld/HelloWorld.csproj": {}
+    "/Users/tavish/Desktop/Wetware/SocketPrototypes/HelloWorld.csproj": {}
   },
   "projects": {
-    "/Users/tavish/Downloads/HelloWorld/HelloWorld.csproj": {
+    "/Users/tavish/Desktop/Wetware/SocketPrototypes/HelloWorld.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/tavish/Downloads/HelloWorld/HelloWorld.csproj",
+        "projectUniqueName": "/Users/tavish/Desktop/Wetware/SocketPrototypes/HelloWorld.csproj",
         "projectName": "HelloWorld",
-        "projectPath": "/Users/tavish/Downloads/HelloWorld/HelloWorld.csproj",
+        "projectPath": "/Users/tavish/Desktop/Wetware/SocketPrototypes/HelloWorld.csproj",
         "packagesPath": "/Users/tavish/.nuget/packages/",
-        "outputPath": "/Users/tavish/Downloads/HelloWorld/obj/",
+        "outputPath": "/Users/tavish/Desktop/Wetware/SocketPrototypes/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/tavish/.nuget/NuGet/NuGet.Config"

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "4dO12gMJhA/H5+01P7IigfYag+Pmiqgu75VF1Gxbq4NXvuceZ0kWeOFikQJUJxTxY73DdF6fMM20oIGx3K1xbw==",
+  "dgSpecHash": "lOGIHIXAmg9qORs1g9gWhd7BigQqDOI29GBgFDw9nOMunlJEe6bc13cR4S0STgdL5qb/Ldhqgj16Tfe4ljju9A==",
   "success": true,
-  "projectFilePath": "/Users/tavish/Downloads/HelloWorld/HelloWorld.csproj",
+  "projectFilePath": "/Users/tavish/Desktop/Wetware/SocketPrototypes/HelloWorld.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
