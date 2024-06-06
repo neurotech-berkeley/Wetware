@@ -27,14 +27,10 @@ def dummy_gym_play():
             probs = softmax(logits)
             action = np.argmax(probs)
             state, reward, done, _, __ = env.step(action)
-            if np.abs(state[2]) < 12 and done:
-                print("terminating because of angle")
-            if counter % 100 == 0:
-                print(state[0])
             score += reward
             if done:
                 scores.append(score)
                 if not e % 10:
-                    print(f"episode: {e}/{episodes}, score: {score}")
+                     print(f"episode: {e}/{episodes}, score: {score}")
 
 dummy_gym_play()
