@@ -26,7 +26,7 @@ def read_bytes(numChannels, bufferSize, client_socket, num_bytes_per_element=4):
         arr += [temp]
 
     # Close the socket
-    client_socket.close()
+    # client_socket.close()
 
     return result.reshape((numChannels, bufferSize))
 
