@@ -21,30 +21,20 @@ class MCS_Device_Interface:
     def send_wave_to_neurons(self, wave):
         pass
 
-    def receive_neuron_action(self, time, data, threshold=3):
+    # TODO change linspace stop bound to correct buffer length
+    def extract_neuron_action(self, raw_neural_data, threshold=3):
         """
         Receive spike data after stimulation and return action
         """
         # time, data = self.get_raw_neuron_data()
-        median_abs_deviations, abs_activity = MADs(time, data)
+        median_abs_deviations, abs_activity = MADs(np.linspace(0, 1, raw_neural_data.shape[-1]), raw_neural_data)
+        # TODO fix logic
         spike_count = count_spikes(abs_activity, median_abs_deviations)
         action = 1 if spike_count > threshold else 0
 
         return action
 
-    def get_raw_neuron_data(self):
-        """
-        Receive raw data from neurons (via socket).
-        """
-        # Convert the received data into a usable format and return it
-        return time, data
-    
-    def stimulate_neurons(self, reward):
-        if reward == 1:
-            "reward"
-        else:
-            "punish"
-
+    # reading bytes from socket
     def recv_all(self, socket, n):
         data = b''
         while len(data) < n:
@@ -54,7 +44,7 @@ class MCS_Device_Interface:
             data += packet
         return data
     
-    def read_bytes(self, numChannels, bufferSize, client_socket, num_bytes_per_element=8):
+    def read_neural_data_buffer(self, numChannels, bufferSize, client_socket, num_bytes_per_element=8):
         result = np.empty(numChannels * bufferSize)
 
         data = self.recv_all(client_socket, numChannels*bufferSize*num_bytes_per_element)
@@ -67,7 +57,6 @@ class MCS_Device_Interface:
                 temp += [struct.unpack('d', data[(i*bufferSize*num_bytes_per_element)+j*num_bytes_per_element:(i*bufferSize*num_bytes_per_element)+(j+1)*num_bytes_per_element])[0]]
             arr += [temp]
 
-        # Close the socket
-        # client_socket.close()
-
+        result = np.array(arr)
+        
         return result.reshape((numChannels, bufferSize))

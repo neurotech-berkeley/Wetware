@@ -15,12 +15,12 @@ server_socket.bind((server_ip, recording_port))
 server_socket.listen(5)     
 print ("socket is listening")            
  
-# a forever loop until we interrupt it or 
-# an error occurs 
+# TODO figure out how to persist connection without accepting and closing constantly
+# a forever loop until we interrupt it or an error occurs 
 while True: 
   # Establish connection with client. 
   c, addr = server_socket.accept()     
-  print('Got connection from', addr )
+  print('Got connection from', addr)
  
   # send a thank you message to the client. encoding to send byte type. 
   # dummy_list = [0 for i in range(100)] # convert to buffer
@@ -33,7 +33,7 @@ while True:
   # print(len(dummy_list.tobytes()))
 
   # bytes_dummy_list = bytes(memoryview(array.array("f",dummy_list)))
-  c.send(dummy_list.tobytes())
+  c.sendall(dummy_list.tobytes())
  
   # Close the connection with the client 
   c.close()

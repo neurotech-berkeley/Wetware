@@ -11,49 +11,31 @@ server_ip = "127.0.0.1"  # Localhost
 recording_port = 8080  # C# recording server port
 stimulation_port = 9090 # python stimulation server port
 
-def send_command(command):
+def send_command(stimulation_pattern):
     # connect to the C# client
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((server_ip, stimulation_port))
     
     # send command to the C# client
-    client_socket.sendall(command.encode())
-    
-    # close connection
-    client_socket.close()
-
-def start_stimulation():
-    send_command("start")
-
-def stop_stimulation():
-    send_command("stop")
+    client_socket.sendall(stimulation_pattern.tobytes())
 
 def main():
     # Create a TCP/IP socket
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((server_ip, recording_port))
 
-    # create an openAI gym api object
-    # create an MCS... responsible for collecting raw bytes and converting into list of float, taking list of floats and converting back to bytes
-
-
-    # # Main loop/controller
-    #openaigymapi = OpenAIGymAPI()
-    mcs_interface = MCS_Device_Interface()
+    # Main loop/controller
+    mcs_device_interface = MCS_Device_Interface()
+    openai_gym_api = OpenAIGymAPI(mcs_device_interface, num_channels, buffer_size)
     
-    #openaigymapi.initialize_training()
     while True:
+        # receiving neural data, extracting features, step in OpenAI gym
+        pole_angle, pole_angular_velocity, reward, terminated = openai_gym_api.run_single_frame(client_socket)
         
-    #     curr_timestep_data = MCS_.read_bytes(num_channels, buffer_size, client_socket)
-        curr_timestep_data = mcs_interface.read_bytes(num_channels, buffer_size, client_socket)
-        #pole_angle, pole_angular_velocty, reward, terminated = openaigymapi.run_frame(curr_timestep_data)
-        #if terminated:
-
-        break
-
-
-    #     # TODO signal processing + extract action
-    #     # TODO OpenAI Gym environment interaction
-    #     # 
+        # generating stimulation pattern, stimulating neurons
+        mcs_device_interface.stimulate_neurons(pole_angle, pole_angular_velocity, client_socket)
+    
+    # close connection
+    client_socket.close()
 
 main()
