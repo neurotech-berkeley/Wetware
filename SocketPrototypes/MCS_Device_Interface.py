@@ -13,23 +13,48 @@ class MCS_Device_Interface:
         self.server_ip = server_ip
         self.stimulation_port = stimulation_port
 
-    def stimulate_neurons(self, pole_angle, pole_angular_velocity, client_socket, duration=100):
+    def stimulate_neurons(self, pole_angle, pole_angular_velocity, reward, client_socket, duration=100):
         """
-        Generate stimulation patterns based on pole angle and angular velocity,
+        Generate stimulation patterns based on pole angle, angular velocity, and reward/punishment,
         and send them to neurons via the stimulation server.
-        
+
         Parameters:
         - pole_angle: The angle of the pole in the CartPole environment.
         - pole_angular_velocity: The angular velocity of the pole.
+        - reward: The reward signal from the CartPole environment.
+                Positive rewards reinforce behavior; negative rewards (or lack of reward) punish it.
         - client_socket: The socket connection to the stimulation server.
         - duration: Duration of stimulation in milliseconds (default: 100 ms).
         """
-        # Generate a stimulation waveform based on angle and angular velocity
-        stim_wave = generate_stim_wave(pole_angle, pole_angular_velocity, duration)
+        if reward > 0:
+            # Positive reward: Generate a predictable reinforcing stimulation pattern
+            stim_wave = generate_stim_wave(pole_angle, pole_angular_velocity, duration)
+        else:
+            # Negative reward or punishment: Generate random noise as unpredictable feedback
+            stim_wave = self.generate_random_noise(duration)
 
         # Send the generated waveform to neurons
         self.send_wave_to_neurons(stim_wave)
 
+    def generate_random_noise(self, duration, sampling_rate=500, voltage_amp=150):
+        """
+        Generate a random noise waveform for punishment.
+
+        Parameters:
+        - duration: Duration of the noise in milliseconds.
+        - sampling_rate: Sampling rate for waveform generation (default: 500 Hz).
+        - voltage_amp: Amplitude of the noise signal (default: 150 μV).
+
+        Returns:
+        - A numpy array representing the random noise waveform.
+        """
+        num_samples = int(sampling_rate * (duration / 1000.0))
+        
+        # Generate random values between -voltage_amp and +voltage_amp
+        random_noise = np.random.uniform(-voltage_amp, voltage_amp, num_samples)
+        
+        return random_noise
+    
     def send_wave_to_neurons(self, wave):
         """
         Send a stimulation waveform to neurons via the stimulation server.
