@@ -26,7 +26,7 @@ class MCS_Device_Interface:
         - client_socket: The socket connection to the stimulation server.
         - duration: Duration of stimulation in milliseconds (default: 100 ms).
         """
-        if np.abs(pole_angle) < 0.26:
+        if np.abs(pole_angle) < 0.10:
             # Positive reward: Generate a predictable reinforcing stimulation pattern
             stim_wave = generate_stim_wave(pole_angle, pole_angular_velocity, duration)
         else:
