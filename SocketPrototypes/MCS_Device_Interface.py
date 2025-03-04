@@ -1,6 +1,7 @@
 from square import angle_to_wave
 from spike import MADs, count_spikes
 import numpy as np
+import socket
 import struct
 
 class MCS_Device_Interface:
@@ -19,7 +20,14 @@ class MCS_Device_Interface:
         self.send_wave_to_neurons(wave)
 
     def send_wave_to_neurons(self, wave):
-        pass
+        wave_bytes = wave.tobytes()
+        self.send_command(wave_bytes)
+
+    def send_stimulus(self, stimulus):
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((self.server_ip, self.stimulation_port))
+        client_socket.sendall(stimulus)
+        client_socket.close()
 
     # TODO change linspace stop bound to correct buffer length
     def extract_neuron_action(self, raw_neural_data, threshold=3):
