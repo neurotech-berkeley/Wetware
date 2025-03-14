@@ -13,6 +13,23 @@ def generate_dummy_data(NUM_CHANNELS=58, NUM_SAMPLES=1024):
     channel_data = np.array(channel_data)
     return time, channel_data
 
+def generate_random_dummy_data(NUM_CHANNELS=58, NUM_SAMPLES=1024):
+    time = np.linspace(0, 1, NUM_SAMPLES)  # 1-second interval, 1024 samples
+    channel_data = []
+
+    for i in range(NUM_CHANNELS):
+        # Generate random noise with a mix of sinusoidal signals
+        random_signal = (
+            np.random.uniform(-1, 1, NUM_SAMPLES) +  # Random noise
+            np.sin(2 * np.pi * np.random.uniform(1, 10) * time) +  # Random frequency sinusoid
+            0.5 * np.sin(2 * np.pi * np.random.uniform(10, 50) * time)  # Higher frequency sinusoid
+        )
+        channel_data.append(random_signal)
+
+    channel_data = np.array(channel_data)
+    return time, channel_data
+
+
 def filter(time, channel_data, filter, SAMPLING_FREQ=None, CUTOFF_FREQ = 100):
     if SAMPLING_FREQ is None:
         SAMPLING_FREQ = 1 / (time[1] - time[0]) # spacing b/w time array samples taken to be freq, 1/1024 sec for now
@@ -41,13 +58,13 @@ def count_spikes(abs_activity, median_abs_deviations, THRESHOLD=3):
         spike_counts.append(count)
     return np.array(spike_counts)
 
-def start_to_finish(lc, hc, thresh):
-    time, data = generate_dummy_data()
+def start_to_finish(lc=100, hc=500, thresh=4):
+    time, data = generate_random_dummy_data()
     median_abs_deviations, abs_activity, activity, channel_MAD = MADs(time, data, low_cutoff=lc, high_cutoff=hc)
     counts = count_spikes(abs_activity, median_abs_deviations, thresh)
-    plt.plot(range(len(counts)), counts)
-    plt.show()
-    return time, activity, channel_MAD
+    # plt.plot(range(len(counts)), counts)
+    # plt.show()
+    return time, activity, abs_activity, median_abs_deviations, channel_MAD
 
 def get_dummy_counts(lc=100, hc=500, thresh=4):
     time, data = generate_dummy_data()
