@@ -52,7 +52,7 @@ def generate_stim_wave(angle, angular_velocity, duration, sampling_rate=500, vol
     Parameters:
     -----------
     angle : float
-        Pole angle in degrees (-12 to 12)
+        Pole angle in degrees (-30 to 30)
     angular_velocity : float
         Angular velocity of the pole
     duration : int

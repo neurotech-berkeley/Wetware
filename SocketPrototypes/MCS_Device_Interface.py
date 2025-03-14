@@ -14,6 +14,7 @@ class MCS_Device_Interface:
         self.stimulation_port = stimulation_port
         self.last_action = 0
         self.num_channels = 60  # Assuming total number of MEA channels is 60
+        self.failure_count = 0 # Tracking number of failures
 
     def stimulate_neurons(self, pole_angle, pole_angular_velocity, reward, client_socket, duration=100):
         """
@@ -30,6 +31,7 @@ class MCS_Device_Interface:
             # Negative reward or punishment: Generate random noise as unpredictable feedback
             stim_wave = self.generate_random_noise(duration)
             active_group = "punishment"
+            self.failure_count += 1
 
         # Send stimulation selectively to left or right group based on last action
         
@@ -41,7 +43,7 @@ class MCS_Device_Interface:
         self.send_wave_to_selected_neurons(stim_wave, selected_channels)
 
 
-    def generate_random_noise(self, duration, sampling_rate=500, voltage_amp=150):
+    def generate_random_noise(self, duration, sampling_rate=500, base_voltage_amp=150, failure_count = 1):
         """
         Generate a random noise waveform for punishment.
 
@@ -54,11 +56,31 @@ class MCS_Device_Interface:
         - A numpy array representing the random noise waveform.
         """
         num_samples = int(sampling_rate * (duration / 1000.0))
+        t = np.linspace(0, duration / 1000.0, num_samples)
         
-        # Generate random values between -voltage_amp and +voltage_amp
-        random_noise = np.random.uniform(-voltage_amp, voltage_amp, num_samples)
+        # Increase voltage amplitude based on the number of failures (caps at 2x base amp)
+        max_amp_multiplier = min(2, 1 + 0.1 * failure_count)  
+        voltage_amp = base_voltage_amp * max_amp_multiplier
         
-        return random_noise
+        # Introduce frequency randomness based on failure count
+        base_freq = 5 
+        max_freq = min(50, base_freq + 3 * failure_count) 
+
+        # Generate a chaotic oscillation pattern
+        random_freq_1 = np.random.uniform(base_freq, max_freq)
+        random_freq_2 = np.random.uniform(base_freq * 2, max_freq * 2)
+
+        # Generate sine wave components with phase shifts to make the pattern unpredictable
+        noise_wave = (
+            voltage_amp * np.sin(2 * np.pi * random_freq_1 * t + np.random.uniform(0, 2*np.pi)) +
+            0.5 * voltage_amp * np.sin(2 * np.pi * random_freq_2 * t + np.random.uniform(0, 2*np.pi))
+        )
+        
+        # Add a uniform noise component for extra disruption
+        noise_wave += np.random.uniform(-voltage_amp, voltage_amp, num_samples)
+        
+        # # Generate random values between -voltage_amp and +voltage_amp
+        # random_noise = np.random.uniform(-voltage_amp, voltage_amp, num_samples)
     
     def send_wave_to_neurons(self, wave):
         """
