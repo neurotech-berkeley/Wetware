@@ -12,29 +12,34 @@ class MCS_Device_Interface:
         """
         self.server_ip = server_ip
         self.stimulation_port = stimulation_port
+        self.last_action = 0
+        self.num_channels = 60  # Assuming total number of MEA channels is 60
 
     def stimulate_neurons(self, pole_angle, pole_angular_velocity, reward, client_socket, duration=100):
         """
-        Generate stimulation patterns based on pole angle, angular velocity, and reward/punishment,
-        and send them to neurons via the stimulation server.
-
-        Parameters:
-        - pole_angle: The angle of the pole in the CartPole environment.
-        - pole_angular_velocity: The angular velocity of the pole.
-        - reward: The reward signal from the CartPole environment.
-                Positive rewards reinforce behavior; negative rewards (or lack of reward) punish it.
-        - client_socket: The socket connection to the stimulation server.
-        - duration: Duration of stimulation in milliseconds (default: 100 ms).
+        Generate stimulation patterns based on pole angle, angular velocity, and reward/punishment.
+        Stimulate left or right channels selectively.
         """
-        if np.abs(pole_angle) < 0.10:
-            # Positive reward: Generate a predictable reinforcing stimulation pattern
+
+        # Determine which group to stimulate based on action
+        if np.abs(pole_angle) < 0.262:
+            # Positive reward: Generate predictable reinforcing stimulation pattern
             stim_wave = generate_stim_wave(pole_angle, pole_angular_velocity, duration)
+            active_group = "reward"
         else:
             # Negative reward or punishment: Generate random noise as unpredictable feedback
             stim_wave = self.generate_random_noise(duration)
+            active_group = "punishment"
 
-        # Send the generated waveform to neurons
-        self.send_wave_to_neurons(stim_wave)
+        # Send stimulation selectively to left or right group based on last action
+        
+        if self.last_action == 0:
+            selected_channels = range(self.num_channels // 2)  # Left channels
+        else:
+            selected_channels = range(self.num_channels // 2, self.num_channels)  # Right channels
+        # Send waveform only to selected channels
+        self.send_wave_to_selected_neurons(stim_wave, selected_channels)
+
 
     def generate_random_noise(self, duration, sampling_rate=500, voltage_amp=150):
         """
@@ -74,28 +79,59 @@ class MCS_Device_Interface:
 
         # Close the socket after sending
         client_socket.close()
+    
+    def send_wave_to_selected_neurons(self, wave, selected_channels):
+        """
+        Send a stimulation waveform to selected neurons.
+
+        Parameters:
+        - wave: The waveform to be sent (numpy array).
+        - selected_channels: List of channels to which the waveform should be sent.
+        """
+        # Ensure the waveform is valid
+        if not isinstance(wave, np.ndarray):
+            raise ValueError("Waveform must be a numpy array.")
+
+        # Convert waveform to bytes
+        wave_bytes = wave.tobytes()
+
+        # Create a socket connection to the stimulation server
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            # Connect to the stimulation server
+            client_socket.connect((self.server_ip, self.stimulation_port))
+
+            # Send the selected channel indices first
+            channel_indices = np.array(selected_channels, dtype=np.int32).tobytes()
+            client_socket.sendall(channel_indices)
+
+            # Send the waveform data
+            client_socket.sendall(wave_bytes)
+
+        except Exception as e:
+            print(f"Error sending stimulation data: {e}")
+        finally:
+            # Close the socket connection
+            client_socket.close()
 
     def extract_neuron_action(self, raw_neural_data, threshold=3):
         """
         Process raw neural data to extract an action (0 or 1) for CartPole.
-
-        Parameters:
-        - raw_neural_data: Neural data buffer (2D numpy array).
-        - threshold: Spike count threshold to determine action.
-
-        Returns:
-        - action: 0 (move left) or 1 (move right).
+        Split channels into left and right groups.
         """
-        # Process neural data to calculate spike counts
+
         median_abs_deviations, abs_activity = MADs(
             np.linspace(0, 1, raw_neural_data.shape[-1]), raw_neural_data
         )
-        
         spike_count = count_spikes(abs_activity, median_abs_deviations)
 
-        # Determine action based on spike count threshold
-        action = 1 if np.sum(spike_count) > threshold else 0
+        num_channels = len(spike_count)
+        left_spike_count = np.sum(spike_count[:num_channels // 2])  # First half of channels
+        right_spike_count = np.sum(spike_count[num_channels // 2:])  # Second half of channels
 
+        action = 0 if left_spike_count > right_spike_count else 1  # 0 for left, 1 for right
+        self.last_action = action
+        
         return action
 
     def recv_all(self, socket, n):
