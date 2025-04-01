@@ -1,0 +1,15 @@
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\bin\Debug\net9.0\WriteDataApp.exe
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\bin\Debug\net9.0\WriteDataApp.deps.json
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\bin\Debug\net9.0\WriteDataApp.runtimeconfig.json
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\bin\Debug\net9.0\WriteDataApp.dll
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\bin\Debug\net9.0\WriteDataApp.pdb
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\obj\Debug\net9.0\WriteDataApp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\obj\Debug\net9.0\WriteDataApp.AssemblyInfoInputs.cache
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\obj\Debug\net9.0\WriteDataApp.AssemblyInfo.cs
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\obj\Debug\net9.0\WriteDataApp.csproj.CoreCompileInputs.cache
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\obj\Debug\net9.0\WriteDataApp.sourcelink.json
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\obj\Debug\net9.0\WriteDataApp.dll
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\obj\Debug\net9.0\refint\WriteDataApp.dll
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\obj\Debug\net9.0\WriteDataApp.pdb
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\obj\Debug\net9.0\WriteDataApp.genruntimeconfig.cache
+C:\Users\Deeksha Kasula\Wetware\SocketPrototypes\WriteDataApp\obj\Debug\net9.0\ref\WriteDataApp.dll

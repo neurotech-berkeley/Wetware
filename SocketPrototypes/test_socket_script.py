@@ -11,7 +11,7 @@ def recv_all(socket, n):
             return None
         data += packet
     return data
-def test_single_channel(channel_number=0):
+def test_single_channel(channel_number=23):
     # Create a TCP/IP socket
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_ip = "127.0.0.1"  # Localhost
@@ -42,14 +42,14 @@ def test_single_channel(channel_number=0):
             for i, value in enumerate(channel_data[:10]):
                 print(f"Sample {i}: {value}")
             # Plot the channel data
-            plt.figure(figsize=(10, 6))
-            plt.plot(channel_data)
-            plt.title(f"Channel {channel_number} Data")
-            plt.xlabel("Sample")
-            plt.ylabel("Amplitude")
-            plt.grid(True)
-            plt.savefig(f"channel_{channel_number}_data.png")
-            plt.show()
+            # plt.figure(figsize=(10, 6))
+            # plt.plot(channel_data)
+            # plt.title(f"Channel {channel_number} Data")
+            # plt.xlabel("Sample")
+            # plt.ylabel("Amplitude")
+            # plt.grid(True)
+            # plt.savefig(f"channel_{channel_number}_data.png")
+            # plt.show()
             return channel_data
         else:
             print("No data received")
@@ -63,5 +63,5 @@ def test_single_channel(channel_number=0):
         print("Connection closed")
 if __name__ == "__main__":
     # Change the channel number to test a specific channel (0-59)
-    channel_to_test = 0
+    channel_to_test = 23
     test_single_channel(channel_to_test)
