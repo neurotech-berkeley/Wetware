@@ -1,46 +1,74 @@
-import socket
+import time
 import numpy as np
-from OpenAIGymAPI import OpenAIGymAPI
-from MCS_Device_Interface import MCS_Device_Interface
+from integrated_mea_interface import IntegratedMEAInterface
+from integrated_openai_gym_api import IntegratedOpenAIGymAPI
 
-# Define parameters
-num_channels = 60
-buffer_size = 100
-server_ip = "127.0.0.1"  # Localhost
-recording_port = 8080  # C# recording server port
-stimulation_port = 9090  # Python stimulation server port
-episodes = 100
-
-def run_episodes():
-    # Create a TCP/IP socket for communication with the MEA system
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((server_ip, recording_port))
-
-    # Initialize interfaces for MEA and CartPole
-    mcs_device_interface = MCS_Device_Interface()
-    openai_gym_api = OpenAIGymAPI(mcs_device_interface, num_channels, buffer_size)
-
-    # Loop over episodes
-    for episode in range(episodes):
-        print(f"Starting Episode {episode + 1}/{episodes}")
-        state, _ = openai_gym_api.env.reset()  # Reset CartPole environment for a new episode
-        total_reward = 0
-        done = False
-
-        while not done:
-            # Step 1: Run one frame of CartPole and get state variables and reward
-            pole_angle, pole_angular_velocity, reward, terminated = openai_gym_api.run_single_frame(client_socket)
-
-            # Step 2: Use reward/punishment to stimulate neurons accordingly
-            mcs_device_interface.stimulate_neurons(pole_angle, pole_angular_velocity, reward, client_socket)
-
-            # Step 3: Check termination condition
-            done = terminated
-
-        print(f"Episode {episode + 1} completed with total reward: {total_reward}")
-
-    # Close connection after all episodes are completed
-    client_socket.close()
+def run_integrated_dishbrain():
+    """Run the integrated DishBrain experiment."""
+    # Initialize the integrated MEA interface
+    mea_interface = IntegratedMEAInterface()
+    
+    # Connect to the MEA device
+    if not mea_interface.connect_to_device():
+        print("Failed to connect to MEA device. Exiting.")
+        return
+    
+    try:
+        # Start recording from the MEA
+        if not mea_interface.start_recording():
+            print("Failed to start recording. Exiting.")
+            return
+        
+        # Initialize the OpenAI Gym API
+        gym_api = IntegratedOpenAIGymAPI(mea_interface)
+        
+        # Number of episodes to run
+        episodes = 100
+        
+        # Run episodes
+        for episode in range(episodes):
+            print(f"Starting Episode {episode + 1}/{episodes}")
+            
+            # Reset the environment
+            gym_api.initialize_training()
+            
+            done = False
+            step_count = 0
+            
+            # Run until episode is done
+            while not done:
+                # Wait a bit to ensure we have fresh neural data
+                time.sleep(0.05)
+                
+                # Run one frame of CartPole and get state variables and reward
+                pole_angle, pole_angular_velocity, reward, terminated = gym_api.run_single_frame()
+                
+                # Use reward/punishment to stimulate neurons accordingly
+                mea_interface.stimulate_neurons(pole_angle, pole_angular_velocity, reward)
+                
+                # Check termination condition
+                done = terminated
+                step_count += 1
+                
+                # Print progress every 10 steps
+                if step_count % 10 == 0:
+                    print(f"Episode {episode + 1}, Step {step_count}, Reward so far: {gym_api.total_reward}")
+            
+            print(f"Episode {episode + 1} completed with total reward: {gym_api.total_reward}")
+            
+            # Short pause between episodes
+            time.sleep(1.0)
+    
+    except KeyboardInterrupt:
+        print("\nExperiment interrupted by user.")
+    
+    except Exception as e:
+        print(f"Error during experiment: {e}")
+    
+    finally:
+        # Clean up
+        mea_interface.disconnect()
+        print("Experiment completed.")
 
 if __name__ == "__main__":
-    run_episodes()
+    run_integrated_dishbrain()

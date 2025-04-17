@@ -1,0 +1,15 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\McsUsbNet_Examples\\Examples",
+    "\\McsUsbNet_Examples\\Examples\\CSharp",
+    "\\SocketPrototypes",
+    "\\SocketPrototypes\\MEA2100_Recording_and_Stimulation",
+    "\\SocketPrototypes\\WriteDataApp",
+    "\\SocketPrototypes\\WriteDataApp\\bin",
+    "\\SocketPrototypes\\WriteDataApp\\bin\\x64",
+    "\\SocketPrototypes\\WriteDataApp\\bin\\x64\\Debug"
+  ],
+  "SelectedNode": "\\McsUsbNet_Examples",
+  "PreviewInSolutionExplorer": false
+}
