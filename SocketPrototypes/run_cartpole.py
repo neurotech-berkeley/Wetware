@@ -1,7 +1,7 @@
 import time
 import numpy as np
-from integrated_mea_interface import IntegratedMEAInterface
-from integrated_openai_gym_api import IntegratedOpenAIGymAPI
+import IntegratedMEAInterface
+import IntegratedOpenAIGymAPI
 
 def run_integrated_dishbrain():
     """Run the integrated DishBrain experiment."""
