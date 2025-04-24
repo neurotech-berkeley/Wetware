@@ -44,8 +44,7 @@ class Brian2MEASimulator:
     
     def setup_network(self):
         """Set up the Brian2 spiking neural network."""
-        # Clear any existing objects
-        clear(erase=True)
+        # start_scope()
         
         # Define neuron model - Izhikevich model for biological realism
         neuron_eqs = '''

@@ -30,11 +30,23 @@ def generate_random_dummy_data(NUM_CHANNELS=58, NUM_SAMPLES=1024):
     return time, channel_data
 
 
-def filter(time, channel_data, filter, SAMPLING_FREQ=None, CUTOFF_FREQ = 100):
+def filter(time, channel_data, filter_type, SAMPLING_FREQ=None, CUTOFF_FREQ=100):
     if SAMPLING_FREQ is None:
-        SAMPLING_FREQ = 1 / (time[1] - time[0]) # spacing b/w time array samples taken to be freq, 1/1024 sec for now
-    normalized_cutoff_freq = CUTOFF_FREQ / (0.5 * SAMPLING_FREQ)
-    b, a = butter(4, normalized_cutoff_freq, btype=filter)
+        SAMPLING_FREQ = 1 / (time[1] - time[0])
+
+    nyquist = 0.5 * SAMPLING_FREQ
+    normalized_cutoff_freq = CUTOFF_FREQ / nyquist
+
+    # Debug print that will always show
+    # print(f"[filter DEBUG] Sampling Freq: {SAMPLING_FREQ:.2f} Hz, Nyquist: {nyquist:.2f} Hz, Normalized Cutoff: {normalized_cutoff_freq:.4f}")
+
+    # Auto-correct invalid filter
+    if not (0 < normalized_cutoff_freq < 1):
+        # print(f"[filter WARNING] Cutoff {CUTOFF_FREQ} Hz is invalid for current Nyquist. Adjusting to 90% of Nyquist.")
+        normalized_cutoff_freq = 0.9  # fallback to 90% of Nyquist
+
+    b, a = butter(4, normalized_cutoff_freq, btype=filter_type)
+
     low_passed = channel_data.copy()
     for i in range(channel_data.shape[0]):
         filtered = filtfilt(b, a, channel_data[i])
