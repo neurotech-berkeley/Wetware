@@ -2,7 +2,7 @@ import clr
 import sys
 import numpy as np
 import time
-import gym
+import gymnasium as gym
 from threading import Thread, Event
 from System import Object, Int32, Array, Double
 
@@ -112,8 +112,8 @@ class MEADataReader:
               f"{self.channels_in_block} in block")
         
         # Configure channel block
-        queue_size = self.samplerate
-        threshold = self.samplerate // 100
+        queue_size = self.samplerate * 10
+        threshold = self.samplerate // 50
         
         self.dacq.ChannelBlock.SetSelectedChannels(
             self.channels_in_block // 2, 
@@ -233,8 +233,17 @@ class CartPoleSimulation:
     def __init__(self, mea_reader):
         """Initialize the CartPole simulation with the MEA data reader."""
         self.env = gym.make('CartPole-v1', render_mode='human')
+        self.env = self.env.unwrapped
+        self.env.theta_threshold_radians = 50 * 2 * np.pi / 360  # 24 degrees
+        # print("threshold", self.env.theta_threshold_radians)
+        self.env.x_threshold = 50
+        
+        # Increase episode length (time limit)
+        self.env._max_episode_steps = 1000  # Increase from 500 to 1000
+        
         self.mea_reader = mea_reader
         self.total_reward = 0
+        
         
     def run_episode(self, max_steps=500):
         """Run a single episode of the CartPole simulation."""
@@ -260,6 +269,7 @@ class CartPoleSimulation:
             print(f"Step {step}: Action={action}, Pole Angle={pole_angle:.4f}, "
                   f"Angular Velocity={pole_angular_velocity:.4f}, Reward={reward}")
             
+            print(observation)
             # Check if episode is done
             if terminated or truncated:
                 print(f"Episode finished after {step+1} steps with total reward: {self.total_reward}")
