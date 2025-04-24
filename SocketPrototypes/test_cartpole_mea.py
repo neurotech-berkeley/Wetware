@@ -47,15 +47,15 @@ class MEADataReader:
         if len(usb_entries) <= 0:
             print("No MEA devices found!")
             return False
-            
-        print(f"Found {len(usb_entries)} MEA devices")
+        
+        print("Number of MEA devices found:", len(usb_entries))
         
         # Connect to the first available device for data acquisition
         self.dacq = CMeaUSBDeviceNet()
         
         # Set up event handlers
         self.dacq.ChannelDataEvent += self.handle_data_event
-        self.dacq.ErrorEvent += lambda msg, action: print(f"Error: {msg}")
+        self.dacq.ErrorEvent += lambda msg, action: print("Error:", msg)
         
         # Connect to the device
         status = self.dacq.Connect(usb_entries[0])
