@@ -53,7 +53,7 @@ def filter(time, channel_data, filter_type, SAMPLING_FREQ=None, CUTOFF_FREQ=100)
         low_passed[i, :] = filtered
     return low_passed
 
-def MADs(time, data, low_cutoff = 200, high_cutoff = 400):
+def MADs(time, data, low_cutoff = 5, high_cutoff = 50):
     activity = filter(time, data, "high", CUTOFF_FREQ = high_cutoff)
     abs_activity = np.abs(activity)
     channel_MAD = filter(time, abs_activity, "low", CUTOFF_FREQ = low_cutoff)
@@ -67,6 +67,9 @@ def count_spikes(abs_activity, median_abs_deviations, THRESHOLD=3):
         thresh = THRESHOLD * channel_median
         channel_data = abs_activity[i]
         count = np.sum(np.where(channel_data > thresh, 1, 0))
+        
+        print(f"Channel {i}, MAD: {channel_median:.4f}, Count: {count}")
+        
         spike_counts.append(count)
     return np.array(spike_counts)
 

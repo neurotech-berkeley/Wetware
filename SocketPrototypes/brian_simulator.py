@@ -1,7 +1,6 @@
-# brian_simulator.py
+# brian_simulator.py (final version with reward trace and correct synapse assignment)
 import numpy as np
 from brian2 import *
-import matplotlib.pyplot as plt
 from square import generate_stim_wave
 
 class Brian2MEASimulator:
@@ -12,23 +11,16 @@ class Brian2MEASimulator:
         self.device_connected = False
         self.last_action = 0
         self.failure_count = 0
-        self.reward_trace = 0
+        self.reward_trace = 0.0  
 
-        defaultclock.dt = 0.1*ms
-        self.network = None
-        self.neurons = None
-        self.spike_monitor = None
-        self.rate_monitor = None
-        self.synapses = None
-
+        defaultclock.dt = 0.1 * ms
         self.setup_network()
         self.device_connected = True
 
     def setup_network(self):
-        """Set up the Brian2 spiking neural network."""
-        # start_scope()
-        
-        # Define neuron model - Izhikevich model for biological realism
+        N = self.num_channels
+        N_half = N // 2
+
         neuron_eqs = '''
         dv/dt = (0.04*v**2 + 5*v + 140 - u + I)/ms : 1
         du/dt = (a*(b*v - u))/ms : 1
@@ -39,9 +31,6 @@ class Brian2MEASimulator:
         d : 1
         '''
 
-        N = self.num_channels
-        N_half = N // 2
-
         self.neurons = NeuronGroup(N, neuron_eqs, threshold='v>=30', reset='v=c; u+=d', method='euler')
         self.neurons.a = 0.02
         self.neurons.b = 0.2
@@ -50,34 +39,42 @@ class Brian2MEASimulator:
         self.neurons.v = -65
         self.neurons.u = self.neurons.b * self.neurons.v
 
-        S_left = Synapses(self.neurons[:N_half], self.neurons[:N_half],
-                          'w : 1\ndApre/dt = -Apre / tau_pre : 1 (event-driven)\ndApost/dt = -Apost / tau_post : 1 (event-driven)',
-                          on_pre='''v_post += w\nApre += dApre\nw = clip(w + Apost, 0, w_max)''',
-                          on_post='''Apost += dApost\nw = clip(w + Apre, 0, w_max)''')
+        syn_eqs = '''
+        w : 1
+        reward : 1
+        dApre/dt = -Apre / (20*ms) : 1 (event-driven)
+        dApost/dt = -Apost / (20*ms) : 1 (event-driven)
+        '''
+
+        on_pre = '''
+        Apre += 0.01
+        v_post += w
+        w = clip(w + reward * Apost, 0, 1.0)
+        '''
+
+        on_post = '''
+        Apost += -0.012
+        w = clip(w + reward * Apre, 0, 1.0)
+        '''
+
+        S_left = Synapses(self.neurons[:N_half], self.neurons[:N_half], model=syn_eqs, on_pre=on_pre, on_post=on_post)
+        S_right = Synapses(self.neurons[N_half:], self.neurons[N_half:], model=syn_eqs, on_pre=on_pre, on_post=on_post)
         S_left.connect(p=0.1)
-
-        S_right = Synapses(self.neurons[N_half:], self.neurons[N_half:],
-                           'w : 1\ndApre/dt = -Apre / tau_pre : 1 (event-driven)\ndApost/dt = -Apost / tau_post : 1 (event-driven)',
-                           on_pre='''v_post += w\nApre += dApre\nw = clip(w + Apost, 0, w_max)''',
-                           on_post='''Apost += dApost\nw = clip(w + Apre, 0, w_max)''')
         S_right.connect(p=0.1)
-
         S_left.w = '0.5*rand()'
         S_right.w = '0.5*rand()'
 
-        # Plasticity parameters
-        S_left.tau_pre = S_right.tau_pre = 20*ms
-        S_left.tau_post = S_right.tau_post = 20*ms
-        S_left.dApre = S_right.dApre = 0.01
-        S_left.dApost = S_right.dApost = -0.012
-        S_left.w_max = S_right.w_max = 1.0
-
+        self.synapses = {'left': S_left, 'right': S_right}
         self.spike_monitor = SpikeMonitor(self.neurons)
         self.rate_monitor = PopulationRateMonitor(self.neurons)
 
-        self.synapses = {'left': S_left, 'right': S_right}
+        self.network = Network(self.neurons, S_left, S_right, self.spike_monitor, self.rate_monitor)
 
-        self.network = Network(collect())
+    def connect_to_device(self):
+        print("Simulated device connected.")
+
+    def start_recording(self):
+        print("Started recording (in silico).")
 
     def run_simulation(self, duration):
         self.network.run(duration * ms)
@@ -100,8 +97,6 @@ class Brian2MEASimulator:
             stim_wave = self.generate_random_noise(100)
             self.failure_count += 1
 
-        self.reward_trace = 0.9 * self.reward_trace + 0.1 * reward
-
         normalized_stim = np.mean(stim_wave) / 10
         self.neurons.I = 0
         N_half = self.num_channels // 2
@@ -109,10 +104,10 @@ class Brian2MEASimulator:
         for i in target_neurons:
             self.neurons.I[i] = normalized_stim
 
-        if reward > 0:
-            for s in [self.synapses['left'], self.synapses['right']]:
-                s.dApre = 0.01 * self.reward_trace
-                s.dApost = -0.012 * self.reward_trace
+        self.reward_trace = 0.9 * self.reward_trace + 0.1 * reward  # ✅ update reward trace
+
+        for s in [self.synapses['left'], self.synapses['right']]:
+            s.reward[:] = self.reward_trace  # ✅ broadcast reward trace
 
         self.run_simulation(100)
 
@@ -144,3 +139,4 @@ class Brian2MEASimulator:
         )
         noise_wave += np.random.uniform(-voltage_amp, voltage_amp, num_samples)
         return noise_wave
+

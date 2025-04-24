@@ -2,7 +2,6 @@
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
-from brian2 import *
 from brian_simulator import Brian2MEASimulator
 
 class Brian2CartPoleIntegration:
@@ -92,3 +91,8 @@ class Brian2CartPoleIntegration:
 
         plt.tight_layout()
         plt.show()
+
+if __name__ == '__main__':
+    integration = Brian2CartPoleIntegration()
+    integration.train(num_episodes=100, render=False)
+    integration.visualize_network_activity(duration=1000)
