@@ -2,7 +2,7 @@ import clr
 import sys
 import numpy as np
 import time
-import gymnasium as gym
+import matplotlib.pyplot as plt
 from threading import Thread, Event
 from System import Object, Int32, Array, Double
 
@@ -128,11 +128,15 @@ class MEADataReader:
         self.dacq.ChannelBlock.SetCheckChecksum(checksum_channels_value, timestamp_channels_value)
     
     def start_recording(self):
-        """Start recording data from the MEA."""
         if not self.device_connected:
             print("Device not connected. Cannot start recording.")
             return False
             
+        # Initialize data storage
+        self.data_buffer = [[] for _ in range(self.num_channels)]
+        self.timestamps = []
+        self.start_time = time.time()
+        
         # Start data acquisition
         self.dacq.StartDacq()
         print("Recording started")
@@ -142,11 +146,51 @@ class MEADataReader:
         self.recording_thread = Thread(target=self.recording_loop)
         self.recording_thread.daemon = True
         self.recording_thread.start()
-        
         return True
-    
+        
+    def recording_loop(self):
+        while not self.stop_recording_flag.is_set():
+            current_time = time.time() - self.start_time
+            
+            # Check if recording duration has been reached
+            if current_time >= self.recording_duration:
+                print(f"Reached recording duration of {self.recording_duration} seconds")
+                self.stop_recording_flag.set()
+                break
+                
+            # Wait for new data with timeout
+            if self.data_ready.wait(timeout=0.1):
+                self.data_ready.clear()
+                
+            time.sleep(0.01)  # Small sleep to prevent CPU hogging
+            
+    def handle_data_event(self, dacq, cb_handle, num_frames):
+        try:
+            # Record timestamp
+            current_time = time.time() - self.start_time
+            self.timestamps.append(current_time)
+            
+            # Number of channels is channelsInBlock / 2 for 32-bit data
+            num_channels = self.channels_in_block // 2
+            
+            # Read data from each channel and store
+            for i in range(min(num_channels, self.num_channels)):
+                frames_ret = Int32(0)
+                channel_data = dacq.ChannelBlock.ReadFramesI32(i, 0, num_frames, frames_ret)
+                frames_ret_value = int(frames_ret)
+                
+                if frames_ret_value > 0:
+                    # Convert to numpy array and store
+                    data_array = np.array(list(channel_data[0]))
+                    self.data_buffer[i].extend(data_array)
+                    
+            # Signal that new data is available
+            self.data_ready.set()
+            
+        except Exception as e:
+            print(f"Error processing MEA data: {e}")
+            
     def stop_recording(self):
-        """Stop recording data from the MEA."""
         if self.recording_thread and self.recording_thread.is_alive():
             self.stop_recording_flag.set()
             self.recording_thread.join(timeout=2.0)
@@ -154,181 +198,109 @@ class MEADataReader:
         if self.device_connected:
             self.dacq.StopDacq(0)
             print("Recording stopped")
-    
+            
     def disconnect(self):
-        """Disconnect from the MEA device."""
         self.stop_recording()
-        
         if self.dacq:
             self.dacq.Disconnect()
-            
         self.device_connected = False
         print("Disconnected from MEA device")
-    
-    def handle_data_event(self, dacq, cb_handle, num_frames):
-        """Handle incoming data from the MEA device."""
-        try:
-            # Number of channels is channelsInBlock / 2 for 32-bit data
-            num_channels = self.channels_in_block // 2
-            
-            # Read data from each channel and store in buffer
-            for i in range(min(num_channels, self.num_channels)):
-                # For ReadFramesI32, we need a boxed object for the out parameter
-                frames_ret = Int32(0)
-                channel_data = dacq.ChannelBlock.ReadFramesI32(i, 0, num_frames, frames_ret)
-                frames_ret_value = int(frames_ret)
+        
+    def plot_and_save_data(self):
+        print("Plotting and saving data...")
+        
+        # Convert data to numpy arrays
+        data_arrays = []
+        for channel_data in self.data_buffer:
+            if channel_data:  # Check if there's data
+                data_arrays.append(np.array(channel_data))
+            else:
+                data_arrays.append(np.array([]))
                 
-                # Store the data in our buffer (take the last buffer_size samples)
-                if frames_ret_value > 0:
-                    data_array = np.array(list(channel_data[0]))
-                    if len(data_array) >= self.buffer_size:
-                        self.data_buffer[i] = data_array[-self.buffer_size:]
-                    else:
-                        # Pad with zeros if not enough data
-                        pad_size = self.buffer_size - len(data_array)
-                        self.data_buffer[i] = np.pad(data_array, (0, pad_size), 'constant')
+        # Create time array based on sample rate
+        if self.timestamps:
+            total_duration = self.timestamps[-1]
             
-            # Signal that new data is available
-            self.data_ready.set()
+            # Plot a subset of channels (e.g., first 6)
+            plt.figure(figsize=(15, 10))
+            for i in range(min(6, self.num_channels)):
+                if len(data_arrays[i]) > 0:
+                    # Create time array for this channel's data
+                    channel_time = np.linspace(0, total_duration, len(data_arrays[i]))
+                    plt.subplot(6, 1, i+1)
+                    plt.plot(channel_time, data_arrays[i])
+                    plt.title(f"Channel {i+1}")
+                    plt.ylabel("Voltage (μV)")
+                    
+            plt.xlabel("Time (s)")
+            plt.tight_layout()
+            plt.savefig("mea_recording_channels.png")
+            plt.close()
             
-        except Exception as e:
-            print(f"Error processing MEA data: {e}")
-    
-    def recording_loop(self):
-        """Background thread to continuously process incoming data."""
-        while not self.stop_recording_flag.is_set():
-            # Wait for new data with timeout
-            if self.data_ready.wait(timeout=0.1):
-                self.data_ready.clear()
-                # Process data if needed
-            time.sleep(0.01)  # Small sleep to prevent CPU hogging
-    
-    def read_neural_data_buffer(self):
-        """Read the current neural data buffer."""
-        # Return a copy of the current buffer
-        return self.data_buffer.copy()
-    
-    def extract_action_from_constant_voltage(self):
-        """
-        Extract an action from constant voltage data.
-        Since we're supplying constant voltage without real neurons,
-        we'll use a simple threshold-based approach on the raw voltage values.
-        """
-        raw_data = self.read_neural_data_buffer()
-        
-        # Simple approach: compare average voltage in left vs right channels
-        # Assuming first half of channels are "left" and second half are "right"
-        left_channels = raw_data[:self.num_channels//2]
-        right_channels = raw_data[self.num_channels//2:]
-        
-        left_avg = np.mean(np.abs(left_channels))
-        right_avg = np.mean(np.abs(right_channels))
-        
-        # 0 for left, 1 for right
-        action = 0 if left_avg > right_avg else 1
-        
-        return action
-
-class CartPoleSimulation:
-    def __init__(self, mea_reader):
-        """Initialize the CartPole simulation with the MEA data reader."""
-        self.env = gym.make('CartPole-v1', render_mode='human')
-        self.env = self.env.unwrapped
-        self.env.theta_threshold_radians = 50 * 2 * np.pi / 360  # 24 degrees
-        # print("threshold", self.env.theta_threshold_radians)
-        self.env.x_threshold = 50
-        
-        # Increase episode length (time limit)
-        self.env._max_episode_steps = 1000  # Increase from 500 to 1000
-        
-        self.mea_reader = mea_reader
-        self.total_reward = 0
-        
-        
-    def run_episode(self, max_steps=500):
-        """Run a single episode of the CartPole simulation."""
-        observation, _ = self.env.reset()
-        self.total_reward = 0
-        
-        for step in range(max_steps):
-            # Render the environment
-            self.env.render()
-            
-            # Get action from MEA data
-            action = self.mea_reader.extract_action_from_constant_voltage()
-            
-            # Take a step in the environment
-            observation, reward, terminated, truncated, _ = self.env.step(action)
-            
-            # Update total reward
-            self.total_reward += reward
-            
-            # Print state information
-            pole_angle = observation[2]
-            pole_angular_velocity = observation[3]
-            print(f"Step {step}: Action={action}, Pole Angle={pole_angle:.4f}, "
-                  f"Angular Velocity={pole_angular_velocity:.4f}, Reward={reward}")
-            
-            print(observation)
-            # Check if episode is done
-            if terminated or truncated:
-                print(f"Episode finished after {step+1} steps with total reward: {self.total_reward}")
-                break
+            # Plot average activity across all channels
+            plt.figure(figsize=(15, 5))
+            valid_channels = [i for i, arr in enumerate(data_arrays) if len(arr) > 0]
+            if valid_channels:
+                # Resample all channels to the same length
+                min_length = min(len(data_arrays[i]) for i in valid_channels)
+                resampled_data = np.array([data_arrays[i][:min_length] for i in valid_channels])
+                avg_activity = np.mean(np.abs(resampled_data), axis=0)
                 
-        return self.total_reward
-        
-    def close(self):
-        """Close the environment."""
-        self.env.close()
+                # Create time array
+                time_array = np.linspace(0, total_duration, len(avg_activity))
+                
+                plt.plot(time_array, avg_activity)
+                plt.title("Average Activity Across All Channels")
+                plt.xlabel("Time (s)")
+                plt.ylabel("Average Absolute Voltage (μV)")
+                plt.grid(True)
+                plt.savefig("mea_recording_average.png")
+                plt.close()
+                
+            print("Plots saved as 'mea_recording_channels.png' and 'mea_recording_average.png'")
+        else:
+            print("No data recorded to plot")
 
 def main():
-    """Main function to run the test script."""
-    print("Starting MEA to CartPole test script...")
+    print("Starting MEA data recording for 2 minutes...")
     
-    # Initialize MEA data reader
-    mea_reader = MEADataReader()
+    # Initialize MEA data recorder
+    mea_recorder = MEADataRecorder()
     
     try:
         # Connect to MEA device
-        if not mea_reader.connect_to_device():
+        if not mea_recorder.connect_to_device():
             print("Failed to connect to MEA device. Exiting.")
             return
-        
+            
         # Start recording from MEA
-        if not mea_reader.start_recording():
+        if not mea_recorder.start_recording():
             print("Failed to start recording. Exiting.")
             return
+            
+        print(f"Recording for {mea_recorder.recording_duration} seconds...")
         
-        # Wait a bit to ensure we have data in the buffer
-        print("Waiting for initial data collection...")
-        time.sleep(2.0)
+        # Wait for recording to complete
+        while mea_recorder.recording_thread and mea_recorder.recording_thread.is_alive():
+            time.sleep(1.0)
+            elapsed = time.time() - mea_recorder.start_time
+            print(f"Recording in progress: {elapsed:.1f}/{mea_recorder.recording_duration} seconds", end="\r")
+            
+        print("\nRecording completed!")
         
-        # Initialize CartPole simulation
-        cart_pole = CartPoleSimulation(mea_reader)
-        
-        # Run a single episode
-        print("Starting CartPole episode...")
-        reward = cart_pole.run_episode()
-        
-        print(f"Test completed with total reward: {reward}")
+        # Plot and save the recorded data
+        mea_recorder.plot_and_save_data()
         
     except KeyboardInterrupt:
-        print("\nTest interrupted by user.")
-    
+        print("\nRecording interrupted by user.")
     except Exception as e:
-        print(f"Error during test: {e}")
+        print(f"Error during recording: {e}")
         import traceback
         traceback.print_exc()
-    
     finally:
         # Clean up
-        try:
-            cart_pole.close()
-        except:
-            pass
-        
-        mea_reader.disconnect()
-        print("Test script completed.")
+        mea_recorder.disconnect()
+        print("Recording script completed.")
 
 if __name__ == "__main__":
     main()
