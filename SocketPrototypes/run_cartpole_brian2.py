@@ -1,5 +1,7 @@
+from brian2 import prefs
+prefs.codegen.target = "numpy"
 import numpy as np
-import gym
+import gymnasium as gym
 import brian2 as b2
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation

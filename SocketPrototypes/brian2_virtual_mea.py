@@ -1,6 +1,9 @@
 import brian2 as b2
 import numpy as np
 from square import generate_stim_wave
+from brian2 import prefs
+prefs.codegen.target = "numpy"
+
 
 class VirtualMEA:
     def __init__(self, left_neurons, right_neurons, left_spikes, right_spikes, network):

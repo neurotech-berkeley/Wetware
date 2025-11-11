@@ -1,8 +1,11 @@
 # brian_integration.py
-import gym
-import numpy as np
 import matplotlib.pyplot as plt
 from brian_simulator import Brian2MEASimulator
+import brian2 as b2
+from brian2 import prefs
+prefs.codegen.target = "numpy"
+import numpy as np
+import gymnasium as gym
 
 class Brian2CartPoleIntegration:
     def __init__(self):

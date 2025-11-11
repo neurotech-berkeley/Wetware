@@ -2,6 +2,9 @@
 import numpy as np
 from brian2 import *
 from square import generate_stim_wave
+from brian2 import prefs
+prefs.codegen.target = "numpy"
+
 
 class Brian2MEASimulator:
     def __init__(self, num_channels=60, buffer_size=100):
