@@ -67,9 +67,6 @@ def count_spikes(abs_activity, median_abs_deviations, THRESHOLD=3):
         thresh = THRESHOLD * channel_median
         channel_data = abs_activity[i]
         count = np.sum(np.where(channel_data > thresh, 1, 0))
-        
-        print(f"Channel {i}, MAD: {channel_median:.4f}, Count: {count}")
-        
         spike_counts.append(count)
     return np.array(spike_counts)
 
