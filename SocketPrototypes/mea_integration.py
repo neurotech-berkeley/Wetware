@@ -252,6 +252,7 @@ class IntegratedMEAInterface:
             
         try:
             # Convert numpy array to .NET array
+            waveform = np.clip(waveform, -500, 500)
             num_samples = len(waveform)
             stim_data = Array.CreateInstance(Double, num_samples)
             for i in range(num_samples):

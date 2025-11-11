@@ -1,7 +1,48 @@
 import time
 import numpy as np
-from integrated_mea_interface import IntegratedMEAInterface
-from integrated_openai_gym_api import IntegratedOpenAIGymAPI
+import matplotlib.pyplot as plt
+import csv
+from datetime import datetime
+from mea_integration import IntegratedMEAInterface
+from openai_integration import IntegratedOpenAIGymAPI
+
+def save_episode_data(episode_steps, episode_rewards, timestamp):
+    """Save episode data to a CSV file"""
+    filename = f"cartpole_episode_data_{timestamp}.csv"
+    
+    with open(filename, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Episode', 'Steps', 'Reward'])
+        
+        for i in range(len(episode_steps)):
+            writer.writerow([i+1, episode_steps[i], episode_rewards[i]])
+    
+    print(f"Episode data saved to {filename}")
+
+def plot_episode_data(episode_steps, episode_rewards, timestamp):
+    """Plot episode steps and rewards"""
+    plt.figure(figsize=(12, 5))
+    
+    # Plot steps per episode
+    plt.subplot(1, 2, 1)
+    plt.plot(range(1, len(episode_steps)+1), episode_steps, marker='o')
+    plt.title('Steps per Episode')
+    plt.xlabel('Episode')
+    plt.ylabel('Steps')
+    plt.grid(True)
+    
+    # Plot rewards per episode
+    plt.subplot(1, 2, 2)
+    plt.plot(range(1, len(episode_rewards)+1), episode_rewards, marker='o', color='orange')
+    plt.title('Reward per Episode')
+    plt.xlabel('Episode')
+    plt.ylabel('Total Reward')
+    plt.grid(True)
+    
+    plt.tight_layout()
+    plt.savefig(f"cartpole_performance_{timestamp}.png")
+    print(f"Performance plot saved to cartpole_performance_{timestamp}.png")
+
 
 def run_integrated_dishbrain():
     """Run the integrated DishBrain experiment."""
